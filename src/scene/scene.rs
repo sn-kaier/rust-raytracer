@@ -19,7 +19,7 @@ pub struct Scene {
 }
 
 pub fn create_test_scene(scene: &mut Scene) {
-    let mat_neutral = Material::create(Vec3A::new(0.3, 0.3, 0.3), 0.7);
+    let mat_mirror = Material::create(Vec3A::new(0.3, 0.3, 0.3), 0.95);
     // let mat_blue = Material::create(Vec3A::new(0.3, 0.3, 1.0), 0.6);
     let mat_green = Material::create(Vec3A::new(0.2, 1.0, 0.1), 0.3);
     // let mat_mirror = Material::create(Vec3A::new(0.2, 1.0, 0.1), 1.0);
@@ -27,8 +27,8 @@ pub fn create_test_scene(scene: &mut Scene) {
     let mat_bricks = Rc::new(Material {
         color: Vec3A::new(1.0, 1.0, 1.0),
         reflect: 0.2,
-        texture: Some(Box::new(load_texture("assets/stone_wall/baseColor.png"))),
-        normal_map: Some(Box::new(load_texture("assets/stone_wall/normal.png"))),
+        texture: Some(Box::new(load_texture("assets/stone_wall/baseColor.png", 1024))),
+        normal_map: Some(Box::new(load_texture("assets/stone_wall/normal.png", 1024))),
     });
 
     // let magic_material = Rc::new(Material {
@@ -42,14 +42,14 @@ pub fn create_test_scene(scene: &mut Scene) {
         color: Vec3A::new(0.1, 0.1, 0.1),
         reflect: 0.7,
         texture: None,
-        normal_map: Some(Box::new(load_texture("assets/stone_wall/normal.png"))),
+        normal_map: Some(Box::new(load_texture("assets/stone_wall/normal.png", 1024))),
     });
 
     let stone_castle = Rc::new(Material {
         color: Vec3A::new(1.0, 1.0, 1.0),
         reflect: 0.05,
-        texture: Some(Box::new(load_texture("assets/stone_castle/baseColor.png"))),
-        normal_map: Some(Box::new(load_texture("assets/stone_castle/normal.png"))),
+        texture: Some(Box::new(load_texture("assets/stone_castle/baseColor.png", 1024))),
+        normal_map: Some(Box::new(load_texture("assets/stone_castle/normal.png", 1024))),
     });
 
     scene.add_sphere(Sphere::create(Vec3A::new(6.0, 0.0, 16.0), 3.0, mat_bricks));
@@ -58,7 +58,7 @@ pub fn create_test_scene(scene: &mut Scene) {
     // scene.add_sphere(Sphere::create(Vec3A::new(0.0, -0.5, 22.0), 1.5, mat_blue.clone()));
     // scene.add_sphere(Sphere::create(Vec3A::new(20.0, 0.0, 0.0), 2.5, mat_blue.clone()));
     // scene.add_sphere(Sphere::create(Vec3A::new(-20.0, 0.0, 0.0), 0.5, mat_green));
-    scene.add_sphere(Sphere::create(Vec3A::new(0.0, 0.0, 22.0), 3.0, mat_neutral.clone()));
+    scene.add_sphere(Sphere::create(Vec3A::new(0.0, 0.0, 22.0), 3.0, mat_mirror.clone()));
     scene.add_sphere(Sphere::create(Vec3A::new(0.0, -6.0, 16.0), 3.0, mat_green.clone()));
     scene.add_sphere(Sphere::create(Vec3A::new(-3.0, 6.0, 12.0), 4.0, magic_reflector.clone()));
 
@@ -66,14 +66,14 @@ pub fn create_test_scene(scene: &mut Scene) {
         dir: Vec3A::new(0., 1., 1.).normalize(),
         direction_sensitivity: 0.0,
         color: Vec3A::new(1.0, 1.0, 1.0) * 2.0,
-        org: Vec3A::new(-22.0, 10.0, 10.0),
+        org: Vec3A::new(0.0, 10.0, -10.0),
     });
-    scene.add_light(Light {
-        dir: Vec3A::new(0., 1., 1.).normalize(),
-        direction_sensitivity: 0.0,
-        color: Vec3A::new(1.0, 1.0, 1.0) * 1.5,
-        org: Vec3A::new(10.0, 20.0, 10.0),
-    });
+    // scene.add_light(Light {
+    //     dir: Vec3A::new(0., 1., 1.).normalize(),
+    //     direction_sensitivity: 0.0,
+    //     color: Vec3A::new(1.0, 1.0, 1.0) * 1.5,
+    //     org: Vec3A::new(0.0, 10.0, 0.0),
+    // });
     // scene.add_light(Light {
     //     dir: Vec3A::new(0., -1., 0.).normalize(),
     //     direction_sensitivity: 0.3,
@@ -127,7 +127,7 @@ impl Scene {
 
                 // coord system from the normal
                 let to_right = normal.cross(-Vec3A::Y);
-                let to_up = normal.cross(to_right);
+                let to_up = normal.cross(-to_right);
 
                 normal = l.z * normal + to_up * l.y + to_right * l.x;
                 reflection = l.z * reflection + to_up * l.y + to_right * l.x;
@@ -170,9 +170,9 @@ impl Scene {
                     let ambient_component = 1.0 - light.direction_sensitivity;
                     let clr = light.color * ((dir_angle_comp + ambient_component) * diffusion_comp + specular_reflection * 0.1);
 
-                    light_color.x += clr.x * mat.color.x;
-                    light_color.y += clr.y * mat.color.y;
-                    light_color.z += clr.z * mat.color.z;
+                    light_color.x += clr.x * color.x;
+                    light_color.y += clr.y * color.y;
+                    light_color.z += clr.z * color.z;
                 }
             }
 
@@ -183,7 +183,9 @@ impl Scene {
             };
             let shot = self.shoot_ray(&refection_ray, iterations - 1);
 
-            return 0.5 * ambient_color * (1.0 - mat.reflect) + light_color * 0.3 + 1.0 * shot * mat.reflect;
+            let non_reflect = 1.0 - mat.reflect;
+
+            return 0.3 * ambient_color * non_reflect + light_color * 0.55 * non_reflect + 1.0 * shot * mat.reflect;
         }
         if let Some(sky) = &self.sky {
             let t = sky.mat.clone();
@@ -211,11 +213,11 @@ impl Scene {
             color: Vec3A::ZERO,
             reflect: 0.0,
             normal_map: None,
-            texture: Some(Box::new(load_texture("assets/skybox.jpg"))),
+            texture: Some(Box::new(load_texture("assets/skybox.jpg", 1024))),
         }));
         Scene {
             camera: Camera {
-                org: Vec3A::ZERO,
+                org: Vec3A::new(0.0, 5.0, -5.0),
                 dir: Vec3A::Z,
                 zoom: 1.5,
                 screen_dist: 4.0,

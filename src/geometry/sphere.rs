@@ -1,15 +1,17 @@
 use core::f32::consts::PI;
 use std::rc::Rc;
+
 use glam::{Vec2, Vec3A};
 use rand::Rng;
 use rand::rngs::OsRng;
+
 use crate::geometry::ray::Ray;
 use crate::geometry::traceable::Traceable;
 use crate::scene::material::Material;
 
 pub fn uv_map(n: &Vec3A) -> (f32, f32) {
-    let u = n.x.atan2(n.z) / (2.0 * PI) + 0.5;
-    let v = -n.y * 0.5 + 0.5;
+    let u = (n.x.atan2(n.z) / (2.0 * PI) + 0.5) * 0.99999; // [0, 1)
+    let v = (-n.y * 0.5 + 0.5) * 0.99999;
     (u, v)
 }
 
@@ -36,6 +38,7 @@ impl Sphere {
 }
 
 impl Traceable for Sphere {
+
     fn intersect(&self, ray: &Ray, t: &mut f32) -> bool {
         let l = self.center - ray.org;
         let t_ca = l.dot(ray.dir);
@@ -80,6 +83,7 @@ impl Traceable for Sphere {
     fn get_texture_coord(&self, position: &Vec3A) -> Vec2 {
         let normal = (*position - self.center).normalize();
         let (u, v) = uv_map(&normal);
+
         Vec2::new(u, v)
     }
 }
